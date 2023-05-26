@@ -1,8 +1,8 @@
 # tree
 
-Outputs the directories, subdirectories, and files as a tree.
+<p>Outputs the directories, subdirectories, and files as a tree.</p>
 ---
 ## tools
 
-- [font](https://www.nerdfonts.com/#home)
+- [nerdfonts](https://www.nerdfonts.com/#home)
 
