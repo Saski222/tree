@@ -83,18 +83,22 @@ function recursive()
     if [[ ! -z $H_FLAG ]]; then
         shopt -s dotglob
     fi
-
-    for DIR in $1*
+    
+    for DIR in "${1}"/*
     do
         NAME="$(echo $DIR | awk -F '/' '{print $NF}')"
+        if [ ! -z "$(echo $NAME | grep ' ')" ]
+        then
+            DIR="$(echo $DIR | sed 's=/[ ]/=\\ /=g')"
+        fi
 
-        if [ -f $DIR ] 
+        if [ -f "$DIR" ] 
         then
             if [[ -z $D_FLAG ]]; then
                 continue
             fi
             for ((i = 0; i < $2; i++)); do
-                printf "  "
+                printf "| "
             done
 
                 
@@ -105,16 +109,16 @@ function recursive()
             fi
 
             printf "$(icon $NAME) $T_ITALLIC$NAME\n"
-        elif [ -d $DIR ] 
+        elif [ -d "$DIR" ] 
         then
             if [[ -z $D_FLAG ]]; then
-                ELEMENTS=$(ls -p $H_FLAG $DIR | grep '/' | wc -l)
+                ELEMENTS=$(ls -p $H_FLAG "$DIR" | grep '/' | wc -l)
             else  
-                ELEMENTS=$(ls $H_FLAG $DIR | wc -l)
+                ELEMENTS=$(ls $H_FLAG "$DIR" | wc -l)
             fi
             
             for ((i = 0; i < $2; i++)); do
-                printf "  "
+                printf "| "
             done
 
             if [[ $ELEMENTS -eq 0 ]]; then  
@@ -149,7 +153,7 @@ function recursive()
                 fi
 
                 printf "\n"
-                recursive "${DIR}/" $(($2+1))
+                recursive "${DIR}" $(($2+1))
             fi   
         else
             echo "unk: $NAME; dir: $DIR" 
@@ -193,4 +197,4 @@ done
 printf "$B_FULL_FOLDER "
 echo $MY_PWD | awk -F '/' '{print $NF}'
 
-recursive "$MY_PWD/" 1
+recursive "$MY_PWD" 1
