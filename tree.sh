@@ -21,6 +21,8 @@ H_FLAG="" # show hiden files (ls -A (-A = almost-all))
 D_FLAG="" # show directories only
 M_FLAG="" # show metadata 
 
+# returns the icon to the corresponding file type*
+# type*: based on the file name (myFile.txt -> text file...)
 function icon ()
 {    
     case "${1}" in
@@ -42,6 +44,7 @@ function icon ()
     esac
 }
 
+# looks inside directory and takes info about what is inside
 function mine_info() 
 {
     declare -i N_FILES=0
@@ -98,34 +101,43 @@ function tabs() {
     printf "$T_RESET"
 }
 
+# counts the total number of element inside directory
 function count_elements()
 {
     R="1"
-    if [[ -n $D_FLAG ]]; then
-        if [[ -n $H_FLAG ]]; then
-            R=$(du --inode -d 1 "${1}" | wc -l)
-        else
-            R=$(du --inode -d 1 "${1}"| grep -v "/\." | wc -l)
-        fi
+   #if [[ -n $D_FLAG ]]; then
+   #    if [[ -n $H_FLAG ]]; then
+   #        R=$(du --inode -d 1 "${1}" | wc -l)
+   #    else
+   #        R=$(du --inode -d 1 "${1}"| grep -v "/\." | wc -l)
+   #    fi
+   #else
+   #    if [[ -n $H_FLAG ]]; then
+   #        R=$(du --inode -a -d 1 "${1}" | wc -l)
+   #    else
+   #        R=$(du --inode -a -d 1 "${1}" | grep -v "/\." | wc -l)
+   #    fi
+   #fi
+    if [[ -n $H_FLAG ]]; then
+        R=$(du --inode -a -d 1 "${1}" | wc -l)
     else
-        if [[ -n $H_FLAG ]]; then
-            R=$(du --inode -a -d 1 "${1}" | wc -l)
-        else
-            R=$(du --inode -a -d 1 "${1}" | grep -v "/\." | wc -l)
-        fi
+        R=$(du --inode -a -d 1 "${1}" | grep -v "/\." | wc -l)
     fi
 
     echo $(($(($R)) - 1))
 }
 
+# main, does all the things
 function recursive()
 {
     declare -i ELEMENTS=0
-
+    
+    # activate a flag for hidden shit
     if [[ -n $H_FLAG ]]; then
         shopt -s dotglob
     fi
-    
+   
+    # loop around f/d(s) inside dir
     for DIR in "${1}"/*
     do
         NAME="$(echo $DIR | awk -F '/' '{print $NF}')"
@@ -137,66 +149,93 @@ function recursive()
         fi
 
 
-        if [ -f "$DIR" ] 
-        then
+        if [ -f "$DIR" ] # FILE
+        then 
+            # check if only directory mode
             if [[ -n $D_FLAG ]]; then
                 continue
             fi
-            
-            tabs $2 
 
+            # print necesary tabulation
+            tabs $2 
+            
+            # check if file is hiden ".fileName"
             if [[ -n "$(echo $NAME | grep "^\..")" ]]; then
                 printf "$T_BRIGHT"
             else
                 printf "$T_RESET"
             fi
-
+            
+            # print file icon and name
             printf "$(icon "${NAME}") $T_ITALLIC$NAME$T_RESET\n"
-        elif [ -d "$DIR" ] 
+        elif [ -d "$DIR" ] # DIR
         then
+            # print necesary tabulation
             tabs $2 
             
+            # count number of elements inside file
             ELEMENTS=$(count_elements "${DIR}")
 
-            if [[ $ELEMENTS -eq 0 ]]; then  
+            # check if file is empty
+            if [[ $ELEMENTS -eq 0 ]]; then
+                # check if file is hiden
                 if [[ -z $(echo "$NAME" | grep "^\..") ]]; then
                     printf "${T_RESET}$B_EMPTY_FOLDER $NAME"
                 else
                     printf "${T_BRIGHT}$H_EMPTY_FOLDER $NAME"
                 fi
-                
+
+                # check if meta flag is on
                 if [[ -n $M_FLAG ]]; then
-                    printf "${T_BRIGHT} 󰟢" # " 'empty'" # 󰟢 f07e2
+                    printf "  ${T_BRIGHT}󰟢" # " 'empty'" # 󰟢 f07e2
                 fi
                 printf "\n"
+                
+                #printf " ${T_BRIGHT}\n" # f10c 󰟢 f07e2
             else 
-                if [[ -z $(echo "$NAME" | grep "^\..") ]]; then
+                # check if has to many elements to show
+                if [[ $ELEMENTS -gt $MAX_ELEMENTS ]]; then
+                    # check if file is hide 
+                    # !TODO this can be taken out from here back (code repetition)
+                    if [[ -z $(echo "$NAME" | grep "^\..") ]]; then
+                        printf "${T_RESET}$B_EMPTY_FOLDER $NAME"
+                    else
+                        printf "${T_BRIGHT}$H_EMPTY_FOLDER $NAME"
+                    fi
+                elif [[ -z $(echo "$NAME" | grep "^\..") ]]; then
                     printf "${T_RESET}$B_FULL_FOLDER $NAME"
                 else
                     printf "${T_BRIGHT}$H_FULL_FOLDER $NAME"
                 fi 
-
-                if [[ $MAX_DEPTH -lt $2 || $ELEMENTS -gt $MAX_ELEMENTS ]]; then
+                
+                # check if we have reached max_d or to many elements to show
+                if [[ $MAX_DEPTH -lt $2 || $ELEMENTS -gt $MAX_ELEMENTS ]]
+                then
                     if [[ -z $M_FLAG ]]; then
-                        printf "  ${T_BRIGHT}${ELEMENTS} element(s)\n" # f0d7
+                        printf "  ${T_BRIGHT}${ELEMENTS} element(s)\n" # f0da
                     else
                         printf "  ${T_BRIGHT}$(mine_info "${DIR}")\n" # f0da
                     fi
                     continue
                 fi
                 
-                if [[ -n $M_FLAG ]]; then
-                    printf "  ${T_BRIGHT}$(mine_info "${DIR}")"
+                # check if meta flag is on
+                if [[ -z $M_FLAG ]]; then
+                    printf "  ${T_BRIGHT}${ELEMENTS} element(s)\n" # f0d7
+                else
+                    printf "  ${T_BRIGHT}$(mine_info "${DIR}")\n" # f0d7
                 fi
-
-                printf "\n"
+                
+                # go inside directory and recursively repeat
                 recursive "${DIR}" $(($2+1))
             fi   
         else
+                # unkown (normaly happens f/d doesn't exist > you fucked up)
             echo "unk: $NAME; dir: $DIR" 
         fi
     done
-
+    
+    # deactivate the flag for hidden shit
     shopt -u dotglob
      
     return 1
