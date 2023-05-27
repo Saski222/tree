@@ -10,16 +10,16 @@ B_FULL_FOLDER=""     # f07c
 H_EMPTY_FOLDER=""   # f114
 H_FULL_FOLDER=""    # f115
 
-C_LINE="│"
+C_LINE="│"  # decoration shit
 
-declare -i MAX_DEPTH=8
-declare -i MAX_ELEMENTS=8
+declare -i MAX_DEPTH=8      # tree max depth
+declare -i MAX_ELEMENTS=8   # "branch max leaves"
 
-MY_PWD=""
+MY_PWD="" # 'root' folder
 
-H_FLAG="" # -A = almost-all; 
-D_FLAG="" # directories only or all
-M_FLAG="" # metadata flag
+H_FLAG="" # show hiden files (ls -A (-A = almost-all)) 
+D_FLAG="" # show directories only
+M_FLAG="" # show metadata 
 
 function icon ()
 {    
@@ -78,7 +78,7 @@ function mine_info()
     shopt -u dotglob
     
     if [[ $N_DIRS -gt 0 ]]; then
-        printf "dirs: $N_DIRS"
+        printf "d: $N_DIRS"
     fi
     
     if [[ $N_DIRS -gt 0 && $N_FILES -gt 0 ]]; then
@@ -86,14 +86,14 @@ function mine_info()
     fi
     
     if [[ $N_FILES -gt 0 ]]; then
-        printf "files: $N_FILES ($(echo -e $EXTENTIONS | LC_ALL=C sort | uniq | tr '\n' ',' | sed "s/,$//;s/^,//"))"
+        printf "f: $N_FILES ($(echo -e $EXTENTIONS | LC_ALL=C sort | uniq | tr '\n' ',' | sed "s/,$//;s/^,//"))"
     fi
 }
 
 function tabs() {
     printf "$T_BRIGHT"
     for ((i = 0; i < $1; i++)); do
-        printf "$C_LINE " # •
+        printf "$C_LINE  " # •
     done
     printf "$T_RESET"
 }
@@ -156,11 +156,8 @@ function recursive()
         then
             tabs $2 
             
-            ELMENTS=$(count_elements "${DIR}")
+            ELEMENTS=$(count_elements "${DIR}")
 
-            echo $ELEMENTS
-            printf "d:$DIR;n:"
-            count_elements "${DIR}"
             if [[ $ELEMENTS -eq 0 ]]; then  
                 if [[ -z $(echo "$NAME" | grep "^\..") ]]; then
                     printf "${T_RESET}$B_EMPTY_FOLDER $NAME"
@@ -169,7 +166,7 @@ function recursive()
                 fi
                 
                 if [[ -n $M_FLAG ]]; then
-                    printf " 'empty'" # 󰟢 f07e2
+                    printf "${T_BRIGHT} 󰟢" # " 'empty'" # 󰟢 f07e2
                 fi
                 printf "\n"
             else 
@@ -181,15 +178,15 @@ function recursive()
 
                 if [[ $MAX_DEPTH -lt $2 || $ELEMENTS -gt $MAX_ELEMENTS ]]; then
                     if [[ -z $M_FLAG ]]; then
-                        printf "  ${ELEMENTS} element(s) inside\n" # f0d7
+                        printf "  ${T_BRIGHT}${ELEMENTS} element(s)\n" # f0d7
                     else
-                        printf "  $(mine_info "${DIR}")\n" # f0da
+                        printf "  ${T_BRIGHT}$(mine_info "${DIR}")\n" # f0da
                     fi
                     continue
                 fi
                 
                 if [[ -n $M_FLAG ]]; then
-                    printf "  $(mine_info "${DIR}")"
+                    printf "  ${T_BRIGHT}$(mine_info "${DIR}")"
                 fi
 
                 printf "\n"
@@ -211,11 +208,14 @@ function help ()
     echo -e "Usage: tree [-[amd]|-[xy] [0-9]+] [dir]"
     echo -e "  e.g: tree -a 'show tree, with hiden folders'"
     echo -e "  e.g: tree -d -x 3 -m 'show tree, with only directories, MAX_DEPTH=3, show some metadata of directories'"
-    echo -e "   -a,\n      show hiden files/directories."
-    echo -e "   -d,\n      hide files."
-    echo -e "   -m --meta,\n      show more info about unopened folders."
-    echo -e "   -x #, --depth #\n      goes # directories depth. default = ${MAX_DEPTH}."
-    echo -e "   -y #, --elements #\n      shows file contents if it has less than # number of elements. default = ${MAX_ELEMENTS}."
+    echo -e "Flags:"
+    echo -e "  behaviour:"
+    echo -e "    -a,\n      show hiden files/directories."
+    echo -e "    -d,\n      hide files."
+    echo -e "    -m --meta,\n      show more info about unopened folders."
+    echo -e "  distance:"
+    echo -e "    -x #, --depth #\n      goes # directories depth. default = ${MAX_DEPTH}."
+    echo -e "    -y #, --elements #\n      shows file contents if it has less than # number of elements. default = ${MAX_ELEMENTS}."
     exit 0
 }
 
