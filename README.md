@@ -7,4 +7,5 @@
 ## tools
 
 - [nerdfonts](https://www.nerdfonts.com/#home)
+- [ASCII-table](https://ascii-tables.com/)
 

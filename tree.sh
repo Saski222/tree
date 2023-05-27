@@ -10,18 +10,20 @@ B_FULL_FOLDER=""     # f07c
 H_EMPTY_FOLDER=""   # f114
 H_FULL_FOLDER=""    # f115
 
-B_FILE="${T_ITALLIC}"             # f15c
+C_LINE="│"
 
 declare -i MAX_DEPTH=8
 declare -i MAX_ELEMENTS=8
 
+MY_PWD=""
+
 H_FLAG="" # -A = almost-all; 
-D_FLAG="NOT_NULL" # "" or "NOT_NULL" onli directories or all
+D_FLAG="" # directories only or all
 M_FLAG="" # metadata flag
 
 function icon ()
 {    
-    case "$1" in
+    case "${1}" in
         *.txt)  echo '󰈙' ;; # f0219
         *.zip)  echo '' ;; # f1c6
         *.sh)   echo '' ;; # e795
@@ -47,19 +49,27 @@ function mine_info()
 
     EXTENTIONS=""
 
-    if [[ ! -z $H_FLAG ]]; then
+    if [[ -n $H_FLAG ]]; then
         shopt -s dotglob
     fi
 
-    for SUB_DIR in $1*
+    for SUB_DIR in "${1}"/*
     do
         SUB_NAME="$(echo $SUB_DIR | awk -F '/' '{print $NF}')"
 
-        if [ -f $SUB_DIR ] 
+        if [ -n "$(echo $SUB_NAME | grep ' ')" ]
+        then
+            SUB_DIR="$(echo $SUB_DIR | sed 's=/[ ]/=\\ /=g')"
+            SUB_NAME="$(echo $SUB_NAME | sed 's=/[ ]/=\\ /=g')"
+        fi
+
+       # printf "$SUB_NAME,"
+
+        if [ -f "${SUB_DIR}" ] 
         then
             N_FILES+=1
-            EXTENTIONS+="\n$(icon $SUB_NAME)"
-        elif [ -d $SUB_DIR ] 
+            EXTENTIONS+="\n$(icon "${SUB_NAME}")"
+        elif [ -d "${SUB_DIR}" ] 
         then
             N_DIRS+=1
         fi
@@ -68,7 +78,11 @@ function mine_info()
     shopt -u dotglob
     
     if [[ $N_DIRS -gt 0 ]]; then
-        printf "dirs: $N_DIRS; "
+        printf "dirs: $N_DIRS"
+    fi
+    
+    if [[ $N_DIRS -gt 0 && $N_FILES -gt 0 ]]; then
+        printf ", "
     fi
     
     if [[ $N_FILES -gt 0 ]]; then
@@ -76,51 +90,77 @@ function mine_info()
     fi
 }
 
+function tabs() {
+    printf "$T_BRIGHT"
+    for ((i = 0; i < $1; i++)); do
+        printf "$C_LINE " # •
+    done
+    printf "$T_RESET"
+}
+
+function count_elements()
+{
+    R="1"
+    if [[ -n $D_FLAG ]]; then
+        if [[ -n $H_FLAG ]]; then
+            R=$(du --inode -d 1 "${1}" | wc -l)
+        else
+            R=$(du --inode -d 1 "${1}"| grep -v "/\." | wc -l)
+        fi
+    else
+        if [[ -n $H_FLAG ]]; then
+            R=$(du --inode -a -d 1 "${1}" | wc -l)
+        else
+            R=$(du --inode -a -d 1 "${1}" | grep -v "/\." | wc -l)
+        fi
+    fi
+
+    echo $(($(($R)) - 1))
+}
+
 function recursive()
 {
     declare -i ELEMENTS=0
 
-    if [[ ! -z $H_FLAG ]]; then
+    if [[ -n $H_FLAG ]]; then
         shopt -s dotglob
     fi
     
     for DIR in "${1}"/*
     do
         NAME="$(echo $DIR | awk -F '/' '{print $NF}')"
-        if [ ! -z "$(echo $NAME | grep ' ')" ]
+
+        if [ -n "$(echo $NAME | grep ' ')" ]
         then
             DIR="$(echo $DIR | sed 's=/[ ]/=\\ /=g')"
+            NAME="$(echo $NAME | sed 's=/[ ]/=\\ /=g')"
         fi
+
 
         if [ -f "$DIR" ] 
         then
-            if [[ -z $D_FLAG ]]; then
+            if [[ -n $D_FLAG ]]; then
                 continue
             fi
-            for ((i = 0; i < $2; i++)); do
-                printf "| "
-            done
+            
+            tabs $2 
 
-                
-            if [[ ! -z "$(echo $NAME | grep "^\..")" ]]; then
+            if [[ -n "$(echo $NAME | grep "^\..")" ]]; then
                 printf "$T_BRIGHT"
             else
                 printf "$T_RESET"
             fi
 
-            printf "$(icon $NAME) $T_ITALLIC$NAME\n"
+            printf "$(icon "${NAME}") $T_ITALLIC$NAME$T_RESET\n"
         elif [ -d "$DIR" ] 
         then
-            if [[ -z $D_FLAG ]]; then
-                ELEMENTS=$(ls -p $H_FLAG "$DIR" | grep '/' | wc -l)
-            else  
-                ELEMENTS=$(ls $H_FLAG "$DIR" | wc -l)
-            fi
+            tabs $2 
             
-            for ((i = 0; i < $2; i++)); do
-                printf "| "
-            done
+            ELMENTS=$(count_elements "${DIR}")
 
+            echo $ELEMENTS
+            printf "d:$DIR;n:"
+            count_elements "${DIR}"
             if [[ $ELEMENTS -eq 0 ]]; then  
                 if [[ -z $(echo "$NAME" | grep "^\..") ]]; then
                     printf "${T_RESET}$B_EMPTY_FOLDER $NAME"
@@ -128,8 +168,8 @@ function recursive()
                     printf "${T_BRIGHT}$H_EMPTY_FOLDER $NAME"
                 fi
                 
-                if [[ ! -z $M_FLAG ]]; then
-                    printf "  \"empty\"" # f0da
+                if [[ -n $M_FLAG ]]; then
+                    printf " 'empty'" # 󰟢 f07e2
                 fi
                 printf "\n"
             else 
@@ -141,15 +181,15 @@ function recursive()
 
                 if [[ $MAX_DEPTH -lt $2 || $ELEMENTS -gt $MAX_ELEMENTS ]]; then
                     if [[ -z $M_FLAG ]]; then
-                        printf "  ${ELEMENTS} element(s) inside\n"
+                        printf "  ${ELEMENTS} element(s) inside\n" # f0d7
                     else
-                        printf "  $(mine_info "${DIR}/")\n"
+                        printf "  $(mine_info "${DIR}")\n" # f0da
                     fi
                     continue
                 fi
                 
-                if [[ ! -z $M_FLAG ]]; then
-                    printf "  $(mine_info "${DIR}/")"
+                if [[ -n $M_FLAG ]]; then
+                    printf "  $(mine_info "${DIR}")"
                 fi
 
                 printf "\n"
@@ -161,23 +201,23 @@ function recursive()
     done
 
     shopt -u dotglob
-    
+     
     return 1
 }
 
 function help ()
 {
-    echo -e "Usage: tree [option (arg)]"
-    echo -e "  -a:\n\tshow hiden files/directories"
-    echo -e "  -d:\n\thide files"
-    echo -e "  -m --meta:\n\tshow more info about unopened folders"
-    echo -e "  -x # || --depth #:\n\tgoes # directories depth. default = ${MAX_DEPTH}"
-    echo -e "  -y # || --elements #:\n\tshows file contents if it has less than # number of elements. default = ${MAX_ELEMENTS}"
-
+    # -[amd]|-[xy] \d+ ∞
+    echo -e "Usage: tree [-[amd]|-[xy] [0-9]+] [dir]"
+    echo -e "  e.g: tree -a 'show tree, with hiden folders'"
+    echo -e "  e.g: tree -d -x 3 -m 'show tree, with only directories, MAX_DEPTH=3, show some metadata of directories'"
+    echo -e "   -a,\n      show hiden files/directories."
+    echo -e "   -d,\n      hide files."
+    echo -e "   -m --meta,\n      show more info about unopened folders."
+    echo -e "   -x #, --depth #\n      goes # directories depth. default = ${MAX_DEPTH}."
+    echo -e "   -y #, --elements #\n      shows file contents if it has less than # number of elements. default = ${MAX_ELEMENTS}."
     exit 0
 }
-
-MY_PWD="$(pwd)"
 
 while test $# -gt 0; do
     ARG=$1
@@ -185,16 +225,34 @@ while test $# -gt 0; do
     case "$ARG" in
         -h | --help) help;;
         -a) H_FLAG="-A";; 
-        -d) D_FLAG="";;
-        -m | --meta) M_FLAG="yeah";;
+        -d) D_FLAG="1";;
+        -m | --meta) M_FLAG="1";;
         -x | --depth) MAX_DEPTH=$1; shift;;
-        -y) MAX_ELEMENTS=$1; shift;;
-        -elements) MAX_ELEMENTS=$1; shift;; 
+        -y | --elements) MAX_ELEMENTS=$1; shift;; 
         *) MY_PWD="$ARG"
     esac
 done  
+
+# MY_PATH SETUP
+if [[ -n $MY_PWD ]]; then  # User Input DIR
+    # Check if path is relative and convert to absolute
+    if [[ -z $(echo $MY_PWD | grep -E '^/') ]]; then
+        MY_PWD="$(pwd)$(echo "/$MY_PWD" | sed "s|^//|/|")"
+    fi
+    
+    # Check if exist
+    if [[ ! -d $MY_PWD ]]; then
+        echo "tree: error: directory not found"
+        exit 0
+    fi
+    # /path/to/my/directory
+    MY_PWD="$(echo $MY_PWD | sed "s|/$||")"
+else     # User actual dir 
+    MY_PWD="$(pwd)"
+fi
 
 printf "$B_FULL_FOLDER "
 echo $MY_PWD | awk -F '/' '{print $NF}'
 
 recursive "$MY_PWD" 1
+
