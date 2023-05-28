@@ -52,23 +52,23 @@ function mine_info()
 
     EXTENTIONS=""
 
-    [ -n $H_FLAG ] && shopt -s dotglob
+    [[ -n $H_FLAG ]] && shopt -s dotglob
 
     for SUB_DIR in "${1}"/*
     do
         SUB_NAME="$(echo $SUB_DIR | awk -F '/' '{print $NF}')"
 
-        if [ -n "$(echo $SUB_NAME | grep ' ')" ]
+        if [[ -n "$(echo $SUB_NAME | grep ' ')" ]]
         then
             SUB_DIR="$(echo $SUB_DIR | sed 's=/[ ]/=\\ /=g')"
             SUB_NAME="$(echo $SUB_NAME | sed 's=/[ ]/=\\ /=g')"
         fi
 
-        if [ -f "${SUB_DIR}" ] 
+        if [[ -f "${SUB_DIR}" ]] 
         then
             N_FILES+=1
             EXTENTIONS+="\n$(icon "${SUB_NAME}")"
-        elif [ -d "${SUB_DIR}" ] 
+        elif [[ -d "${SUB_DIR}" ]] 
         then
             N_DIRS+=1
         fi
@@ -76,9 +76,9 @@ function mine_info()
     
     shopt -u dotglob
 
-    [ $N_DIRS -gt 0 ] && printf "d: $N_DIRS" && [ $N_FILES -gt 0 ] && printf ", "
+    [[ 0 -lt $N_DIRS ]] && printf "d: $N_DIRS" && [ $N_FILES -gt 0 ] && printf ", "
     
-    [ $N_FILES -gt 0 ] && printf "f: $N_FILES ($(echo -e $EXTENTIONS | LC_ALL=C sort | uniq | tr '\n' ',' | sed "s/,$//;s/^,//"))"
+    [[ 0 -lt $N_FILES ]] && printf "f: $N_FILES ($(echo -e $EXTENTIONS | LC_ALL=C sort | uniq | tr '\n' ',' | sed "s/,$//;s/^,//"))"
 }
 
 function tabs() {
@@ -113,13 +113,13 @@ function generate_list_of_elements()
     # First dirs
     for D in "${1}"/*
     do
-        [ -d $D ] && echo "${D}" | sed 's/[ ]/\/\//g'
+        [[ -d "${D}" ]] && echo "${D}" | sed 's/[ ]/\/\//g'
     done
     
     # Second files
     for F in "${1}"/*
     do
-        [ -f $F ] && echo "${F}" | sed 's/[ ]/\/\//g'
+        [[ -f "${F}" ]] && echo "${F}" | sed 's/[ ]/\/\//g'
     done
     
     # deactivate the flag for hidden shit
@@ -137,20 +137,20 @@ function recursive()
         DIR="$(echo $DIR | sed 's/\/\//\ /g')"
         NAME="$(echo $DIR | awk -F '/' '{print $NF}')"
 
-        if [ -f "$DIR" ] # FILE
+        if [[ -f "$DIR" ]] # FILE
         then 
             # check if only directory mode
-            [ -n $D_FLAG ] && continue
+            [[ -n $D_FLAG ]] && continue
 
             # print necesary tabulation
             tabs $2 
             
             # check if file is hiden ".fileName"
-            [ -n "$(echo $NAME | grep "^\..")" ] && printf "$T_BRIGHT" || printf "$T_RESET"
+            [[ -n "$(echo $NAME | grep "^\..")" ]] && printf "$T_BRIGHT" || printf "$T_RESET"
             
             # print file icon and name
             printf "$(icon "${NAME}") $T_ITALLIC$NAME$T_RESET\n"
-        elif [ -d "$DIR" ] # DIR
+        elif [[ -d "$DIR" ]] # DIR
         then
             # print necesary tabulation
             tabs $2 
@@ -168,12 +168,12 @@ function recursive()
                 fi
 
                 # check if meta flag is on
-                [ -n $M_FLAG ] && printf "  ${T_BRIGHT}󰟢" # f07e2
+                [[ -n $M_FLAG ]] && printf "  ${T_BRIGHT}󰟢" # f07e2
 
                 printf "\n"
             else 
                 # check if has to many elements to show
-                if [[ $ELEMENTS -gt $MAX_ELEMENTS ]]; then
+                if [[ $MAX_ELEMENTS -lt $ELEMENTS ]]; then
                     # check if file is hide 
                     if [[ -z $(echo "$NAME" | grep "^\..") ]]; then
                         printf "${T_RESET}$B_CLOSED_FOLDER $NAME"
@@ -194,9 +194,9 @@ function recursive()
                 else
                     printf "  ${T_BRIGHT}$(mine_info "${DIR}")\n" # f0d7
                 fi
-                
+
                 # check if we have reached max_d or to many elements to show
-                [[ $MAX_DEPTH -lt $2 || $ELEMENTS -gt $MAX_ELEMENTS ]] && continue
+                [[ $MAX_DEPTH -lt $2 || $MAX_ELEMENTS -lt $ELEMENTS ]] && continue
                 
                 # go inside directory and recursively repeat
                 recursive "${DIR}" $(($2+1))
@@ -259,16 +259,25 @@ done
 # MY_PATH SETUP
 if [[ -n $MY_PWD ]]; then  # User Input DIR
     # Check if path is relative and convert to absolute
-    [ -z $(echo $MY_PWD | grep -E '^/') ] && MY_PWD="$(pwd)$(echo "/$MY_PWD" | sed "s|^//|/|")"
+    [[ -z $(echo $MY_PWD | grep -E '^/') ]] && MY_PWD="$(pwd)$(echo "/$MY_PWD" | sed "s|^//|/|")"
     
     # Check if exist
-    [ ! -d $MY_PWD ] && echo "tree: error: directory not found" && exit 0
+    [[ ! -d $MY_PWD ]] && echo "tree: error: directory not found" && exit 0
 
     # /path/to/my/directory
     MY_PWD="$(echo $MY_PWD | sed "s|/$||")"
 else     # User actual dir 
     MY_PWD="$(pwd)"
 fi
+
+#   echo $MY_PWD
+#  echo $MAX_ELEMENTS
+#  echo $MAX_DEPTH
+
+#   echo "d:'$D_FLAG'"
+#   echo "h:'$H_FLAG'"
+#   echo "m:'$M_FLAG'"
+
 
 printf "$B_OPEN_FOLDER "
 echo $MY_PWD | awk -F '/' '{print $NF}'
