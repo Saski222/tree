@@ -13,7 +13,7 @@ H_OPEN_FOLDER=""    # f115
 C_LINE="│"  # decoration shit
 
 declare -i MAX_DEPTH=8      # tree max depth
-declare -i MAX_ELEMENTS=8   # "branch max leaves"
+declare -i MAX_ELEMENTS=16  # "branch max leaves"
 
 MY_PWD="" # 'root' folder
 
@@ -52,9 +52,7 @@ function mine_info()
 
     EXTENTIONS=""
 
-    if [[ -n $H_FLAG ]]; then
-        shopt -s dotglob
-    fi
+    [ -n $H_FLAG ] && shopt -s dotglob
 
     for SUB_DIR in "${1}"/*
     do
@@ -77,18 +75,10 @@ function mine_info()
     done
     
     shopt -u dotglob
+
+    [ $N_DIRS -gt 0 ] && printf "d: $N_DIRS" && [ $N_FILES -gt 0 ] && printf ", "
     
-    if [[ $N_DIRS -gt 0 ]]; then
-        printf "d: $N_DIRS"
-    fi
-    
-    if [[ $N_DIRS -gt 0 && $N_FILES -gt 0 ]]; then
-        printf ", "
-    fi
-    
-    if [[ $N_FILES -gt 0 ]]; then
-        printf "f: $N_FILES ($(echo -e $EXTENTIONS | LC_ALL=C sort | uniq | tr '\n' ',' | sed "s/,$//;s/^,//"))"
-    fi
+    [ $N_FILES -gt 0 ] && printf "f: $N_FILES ($(echo -e $EXTENTIONS | LC_ALL=C sort | uniq | tr '\n' ',' | sed "s/,$//;s/^,//"))"
 }
 
 function tabs() {
@@ -123,17 +113,13 @@ function generate_list_of_elements()
     # First dirs
     for D in "${1}"/*
     do
-        if [[ -d $D ]]; then
-            echo "${D}" | sed 's/[ ]/\/\//g'
-        fi
+        [ -d $D ] && echo "${D}" | sed 's/[ ]/\/\//g'
     done
     
     # Second files
     for F in "${1}"/*
     do
-        if [[ -f $F ]]; then
-            echo "${F}" | sed 's/[ ]/\/\//g'
-        fi
+        [ -f $F ] && echo "${F}" | sed 's/[ ]/\/\//g'
     done
     
     # deactivate the flag for hidden shit
@@ -154,19 +140,13 @@ function recursive()
         if [ -f "$DIR" ] # FILE
         then 
             # check if only directory mode
-            if [[ -n $D_FLAG ]]; then
-                continue
-            fi
+            [ -n $D_FLAG ] && continue
 
             # print necesary tabulation
             tabs $2 
             
             # check if file is hiden ".fileName"
-            if [[ -n "$(echo $NAME | grep "^\..")" ]]; then
-                printf "$T_BRIGHT"
-            else
-                printf "$T_RESET"
-            fi
+            [ -n "$(echo $NAME | grep "^\..")" ] && printf "$T_BRIGHT" || printf "$T_RESET"
             
             # print file icon and name
             printf "$(icon "${NAME}") $T_ITALLIC$NAME$T_RESET\n"
@@ -188,9 +168,7 @@ function recursive()
                 fi
 
                 # check if meta flag is on
-                if [[ -n $M_FLAG ]]; then
-                    printf "  ${T_BRIGHT}󰟢" # " 'empty'" # 󰟢 f07e2
-                fi
+                [ -n $M_FLAG ] && printf "  ${T_BRIGHT}󰟢" # f07e2
 
                 printf "\n"
             else 
@@ -218,16 +196,13 @@ function recursive()
                 fi
                 
                 # check if we have reached max_d or to many elements to show
-                if [[ $MAX_DEPTH -lt $2 || $ELEMENTS -gt $MAX_ELEMENTS ]]
-                then
-                    continue
-                fi
+                [[ $MAX_DEPTH -lt $2 || $ELEMENTS -gt $MAX_ELEMENTS ]] && continue
                 
                 # go inside directory and recursively repeat
                 recursive "${DIR}" $(($2+1))
             fi   
         else
-                # unkown (normaly happens f/d doesn't exist > you fucked up)
+            # unkown (normaly happens f/d doesn't exist > you fucked up)
             echo "unk: $NAME; dir: $DIR" 
         fi
     done
@@ -241,6 +216,7 @@ function help ()
     echo -e "Usage: tree [-[amd]|-[xy] [0-9]+] [dir]"
     echo -e "  e.g: tree -a 'show tree, with hiden folders'"
     echo -e "  e.g: tree -d -x 3 -m 'show tree, with only directories, MAX_DEPTH=3, show some metadata of directories'"
+    echo -e "  e.g: tree -mad 'show tree, only directories, hiden directories and meta about them'"
     echo -e "Flags:"
     echo -e "  behaviour:"
     echo -e "    -a,\n      show hiden files/directories."
@@ -252,16 +228,30 @@ function help ()
     exit 0
 }
 
+function concatenated_flags ()
+{
+    for F in $(echo "$1" | tr -d '-' | grep -o .)
+    do
+        case "$F" in
+            a) H_FLAG="1";;
+            d) D_FLAG="1";;
+            m) M_FLAG="1";;
+            *) echo "tree: error: unkown flag '$F', do 'tree -h' for help" && exit 0;;
+        esac   
+    done 
+}
+
 while test $# -gt 0; do
     ARG=$1
     shift
     case "$ARG" in
         -h | --help) help;;
-        -a) H_FLAG="-A";; 
+        -a) H_FLAG="1";; 
         -d) D_FLAG="1";;
         -m | --meta) M_FLAG="1";;
         -x | --depth) MAX_DEPTH=$1; shift;;
         -y | --elements) MAX_ELEMENTS=$1; shift;; 
+        -*) concatenated_flags $ARG;; # echo "tree: error: unkown flag '$ARG', do 'tree -h' for help" && exit 0;;
         *) MY_PWD="$ARG"
     esac
 done  
@@ -269,15 +259,11 @@ done
 # MY_PATH SETUP
 if [[ -n $MY_PWD ]]; then  # User Input DIR
     # Check if path is relative and convert to absolute
-    if [[ -z $(echo $MY_PWD | grep -E '^/') ]]; then
-        MY_PWD="$(pwd)$(echo "/$MY_PWD" | sed "s|^//|/|")"
-    fi
+    [ -z $(echo $MY_PWD | grep -E '^/') ] && MY_PWD="$(pwd)$(echo "/$MY_PWD" | sed "s|^//|/|")"
     
     # Check if exist
-    if [[ ! -d $MY_PWD ]]; then
-        echo "tree: error: directory not found"
-        exit 0
-    fi
+    [ ! -d $MY_PWD ] && echo "tree: error: directory not found" && exit 0
+
     # /path/to/my/directory
     MY_PWD="$(echo $MY_PWD | sed "s|/$||")"
 else     # User actual dir 
