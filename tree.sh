@@ -5,10 +5,10 @@ T_BOLD="\e[1m"
 T_BRIGHT="\e[2m"
 T_ITALLIC="\e[3m"
 
-B_EMPTY_FOLDER=""    # f07b
-B_FULL_FOLDER=""     # f07c 
-H_EMPTY_FOLDER=""   # f114
-H_FULL_FOLDER=""    # f115
+B_CLOSED_FOLDER=""    # f07b
+B_OPEN_FOLDER=""     # f07c 
+H_CLOSED_FOLDER=""   # f114
+H_OPEN_FOLDER=""    # f115
 
 C_LINE="│"  # decoration shit
 
@@ -66,8 +66,6 @@ function mine_info()
             SUB_NAME="$(echo $SUB_NAME | sed 's=/[ ]/=\\ /=g')"
         fi
 
-       # printf "$SUB_NAME,"
-
         if [ -f "${SUB_DIR}" ] 
         then
             N_FILES+=1
@@ -105,19 +103,7 @@ function tabs() {
 function count_elements()
 {
     R="1"
-   #if [[ -n $D_FLAG ]]; then
-   #    if [[ -n $H_FLAG ]]; then
-   #        R=$(du --inode -d 1 "${1}" | wc -l)
-   #    else
-   #        R=$(du --inode -d 1 "${1}"| grep -v "/\." | wc -l)
-   #    fi
-   #else
-   #    if [[ -n $H_FLAG ]]; then
-   #        R=$(du --inode -a -d 1 "${1}" | wc -l)
-   #    else
-   #        R=$(du --inode -a -d 1 "${1}" | grep -v "/\." | wc -l)
-   #    fi
-   #fi
+
     if [[ -n $H_FLAG ]]; then
         R=$(du --inode -a -d 1 "${1}" | wc -l)
     else
@@ -127,27 +113,43 @@ function count_elements()
     echo $(($(($R)) - 1))
 }
 
-# main, does all the things
-function recursive()
+function generate_list_of_elements() 
 {
-    declare -i ELEMENTS=0
-    
     # activate a flag for hidden shit
     if [[ -n $H_FLAG ]]; then
         shopt -s dotglob
     fi
-   
-    # loop around f/d(s) inside dir
-    for DIR in "${1}"/*
+
+    # First dirs
+    for D in "${1}"/*
     do
-        NAME="$(echo $DIR | awk -F '/' '{print $NF}')"
-
-        if [ -n "$(echo $NAME | grep ' ')" ]
-        then
-            DIR="$(echo $DIR | sed 's=/[ ]/=\\ /=g')"
-            NAME="$(echo $NAME | sed 's=/[ ]/=\\ /=g')"
+        if [[ -d $D ]]; then
+            echo "${D}" | sed 's/[ ]/\/\//g'
         fi
+    done
+    
+    # Second files
+    for F in "${1}"/*
+    do
+        if [[ -f $F ]]; then
+            echo "${F}" | sed 's/[ ]/\/\//g'
+        fi
+    done
+    
+    # deactivate the flag for hidden shit
+    shopt -u dotglob
+}
 
+# main, does all the things
+function recursive()
+{
+    declare -i ELEMENTS=0
+
+    # loop around f/d(s) inside dir
+    for DIR in $(generate_list_of_elements "${1}") # "${1}"/*
+    do
+        DIR="$(echo $DIR | sed 's/\/\//\ /g')"
+        NAME="$(echo $DIR | awk -F '/' '{print $NF}')"
 
         if [ -f "$DIR" ] # FILE
         then 
@@ -180,43 +182,32 @@ function recursive()
             if [[ $ELEMENTS -eq 0 ]]; then
                 # check if file is hiden
                 if [[ -z $(echo "$NAME" | grep "^\..") ]]; then
-                    printf "${T_RESET}$B_EMPTY_FOLDER $NAME"
+                    printf "${T_RESET}$B_CLOSED_FOLDER $NAME"
                 else
-                    printf "${T_BRIGHT}$H_EMPTY_FOLDER $NAME"
+                    printf "${T_BRIGHT}$H_CLOSED_FOLDER $NAME"
                 fi
 
                 # check if meta flag is on
                 if [[ -n $M_FLAG ]]; then
                     printf "  ${T_BRIGHT}󰟢" # " 'empty'" # 󰟢 f07e2
                 fi
+
                 printf "\n"
-                
-                #printf " ${T_BRIGHT}\n" # f10c 󰟢 f07e2
             else 
                 # check if has to many elements to show
                 if [[ $ELEMENTS -gt $MAX_ELEMENTS ]]; then
                     # check if file is hide 
-                    # !TODO this can be taken out from here back (code repetition)
                     if [[ -z $(echo "$NAME" | grep "^\..") ]]; then
-                        printf "${T_RESET}$B_EMPTY_FOLDER $NAME"
+                        printf "${T_RESET}$B_CLOSED_FOLDER $NAME"
                     else
-                        printf "${T_BRIGHT}$H_EMPTY_FOLDER $NAME"
+                        printf "${T_BRIGHT}$H_CLOSED_FOLDER $NAME"
                     fi
-                elif [[ -z $(echo "$NAME" | grep "^\..") ]]; then
-                    printf "${T_RESET}$B_FULL_FOLDER $NAME"
                 else
-                    printf "${T_BRIGHT}$H_FULL_FOLDER $NAME"
-                fi 
-                
-                # check if we have reached max_d or to many elements to show
-                if [[ $MAX_DEPTH -lt $2 || $ELEMENTS -gt $MAX_ELEMENTS ]]
-                then
-                    if [[ -z $M_FLAG ]]; then
-                        printf "  ${T_BRIGHT}${ELEMENTS} element(s)\n" # f0da
+                    if [[ -z $(echo "$NAME" | grep "^\..") ]]; then
+                        printf "${T_RESET}$B_OPEN_FOLDER $NAME"
                     else
-                        printf "  ${T_BRIGHT}$(mine_info "${DIR}")\n" # f0da
-                    fi
-                    continue
+                        printf "${T_BRIGHT}$H_OPEN_FOLDER $NAME"
+                    fi 
                 fi
                 
                 # check if meta flag is on
@@ -224,6 +215,12 @@ function recursive()
                     printf "  ${T_BRIGHT}${ELEMENTS} element(s)\n" # f0d7
                 else
                     printf "  ${T_BRIGHT}$(mine_info "${DIR}")\n" # f0d7
+                fi
+                
+                # check if we have reached max_d or to many elements to show
+                if [[ $MAX_DEPTH -lt $2 || $ELEMENTS -gt $MAX_ELEMENTS ]]
+                then
+                    continue
                 fi
                 
                 # go inside directory and recursively repeat
@@ -234,9 +231,6 @@ function recursive()
             echo "unk: $NAME; dir: $DIR" 
         fi
     done
-    
-    # deactivate the flag for hidden shit
-    shopt -u dotglob
      
     return 1
 }
@@ -290,7 +284,7 @@ else     # User actual dir
     MY_PWD="$(pwd)"
 fi
 
-printf "$B_FULL_FOLDER "
+printf "$B_OPEN_FOLDER "
 echo $MY_PWD | awk -F '/' '{print $NF}'
 
 recursive "$MY_PWD" 1
