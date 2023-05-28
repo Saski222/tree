@@ -76,7 +76,7 @@ function mine_info()
     
     shopt -u dotglob
 
-    [[ 0 -lt $N_DIRS ]] && printf "d: $N_DIRS" && [ $N_FILES -gt 0 ] && printf ", "
+    [[ 0 -lt $N_DIRS ]] && printf "d: $N_DIRS" && [[ $N_FILES -gt 0 ]] && printf ", "
     
     [[ 0 -lt $N_FILES ]] && printf "f: $N_FILES ($(echo -e $EXTENTIONS | LC_ALL=C sort | uniq | tr '\n' ',' | sed "s/,$//;s/^,//"))"
 }
@@ -94,6 +94,15 @@ function count_elements()
 {
     R="1"
 
+   #if [[ -n $M_FLAG && -n $D_FLAG ]];
+   #then
+   #    if [[ -n $H_FLAG ]]; then
+   #        R=$(diff <(du --inode -d 1 "${1}") <(du --inode -a -d 1 "${1}") | grep -E "^>" | wc -l)
+   #    else
+   #        R=$(diff <(du --inode -d 1 "${1}") <(du --inode -a -d 1 "${1}") | grep -E "^>" | grep -v "/\." | wc -l)
+   #    fi
+   #    R=$(($(($R))+1))
+   #el
     if [[ -n $H_FLAG ]]; then
         R=$(du --inode -a -d 1 "${1}" | wc -l)
     else
@@ -105,7 +114,7 @@ function count_elements()
 
 function generate_list_of_elements() 
 {
-    # activate a flag for hidden shit
+    # activate a flag for hidden shit< 
     if [[ -n $H_FLAG ]]; then
         shopt -s dotglob
     fi
@@ -176,23 +185,23 @@ function recursive()
                 if [[ $MAX_ELEMENTS -lt $ELEMENTS ]]; then
                     # check if file is hide 
                     if [[ -z $(echo "$NAME" | grep "^\..") ]]; then
-                        printf "${T_RESET}$B_CLOSED_FOLDER $NAME"
+                        printf "${T_RESET}$B_CLOSED_FOLDER $NAME  "
                     else
-                        printf "${T_BRIGHT}$H_CLOSED_FOLDER $NAME"
+                        printf "${T_BRIGHT}$H_CLOSED_FOLDER $NAME  "
                     fi
                 else
                     if [[ -z $(echo "$NAME" | grep "^\..") ]]; then
-                        printf "${T_RESET}$B_OPEN_FOLDER $NAME"
+                        printf "${T_RESET}$B_OPEN_FOLDER $NAME  "
                     else
-                        printf "${T_BRIGHT}$H_OPEN_FOLDER $NAME"
+                        printf "${T_BRIGHT}$H_OPEN_FOLDER $NAME  "
                     fi 
                 fi
                 
                 # check if meta flag is on
                 if [[ -z $M_FLAG ]]; then
-                    printf "  ${T_BRIGHT}${ELEMENTS} element(s)\n" # f0d7
+                    printf "${T_BRIGHT}${ELEMENTS} element(s)\n" # f0d7
                 else
-                    printf "  ${T_BRIGHT}$(mine_info "${DIR}")\n" # f0d7
+                    printf "${T_BRIGHT}$(mine_info "${DIR}")\n" # f0d7
                 fi
 
                 # check if we have reached max_d or to many elements to show
