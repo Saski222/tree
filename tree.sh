@@ -66,8 +66,7 @@ function insert_icon()
     declare MY_INPUT=${*:-$(</dev/stdin)}
     for INPUT in $MY_INPUT
     do
-        #echo $INPUT
-        printf "$(icon $INPUT) $INPUT\n"
+        printf "$(icon "${INPUT}") $(echo $INPUT | sed 's|//| |g')\n"
     done
 }
 
@@ -152,18 +151,21 @@ function recursive()
 {    
     declare -i ELEMENTS=0
 
-    cd "${1}"
-    
+    cd "$1"
+
     # DIRS
     for DIR in $([[ -z $H_FLAG ]] && \
         find -P -maxdepth 1 -type d | \
             grep -E "\./[^\.].*" | \
-            sort || \
+            sort | \
+            sed 's| |/|g'|| \
         find -P -maxdepth 1 -type d | \
             grep -E -v "^\.$" | \
-            sort
+            sort | \
+            sed 's| |/|g'
     )
     do 
+        DIR=$(echo $DIR | sed 's|/| |g;s|\. |\./|')
         NAME="$(echo $DIR | sed 's|^\./||')"
         
         # print necesary tabulation
@@ -209,14 +211,15 @@ function recursive()
           find -P -maxdepth 1 -type f | \
             sed 's|^./||g;/^\./d' | \
             sort | \
+            sed 's| |/|g' | \
             insert_icon | \
-            sed "s|^|$(tabs $2)|" || \
+            sed "s|^|$(tabs $2)|;s|/| |g" || \
           find -P -maxdepth 1 -type f | \
             sed 's|^./||g' | \
             sort | \
-            sed "s|^\.|\\$T_BRIGHT\.|" | \
+            sed "s|^\.|\\$T_BRIGHT\.|;s| |/|g" | \
             insert_icon | \
-            sed "s|^|$(tabs $2)|" 
+            sed "s|^|$(tabs $2)|;s|/| |g" 
             )\n"
     
     printf "$T_RESET"
