@@ -10,7 +10,9 @@ Outputs the directories, subdirectories, and files as a tree.
     + e.g: tree -a 'show tree, with hiden folders'
     + e.g: tree -d -x 3 -m 'show tree, with only directories, MAX_DEPTH=3, show some metadata of directories'
     + e.g: tree -mad 'show tree, only directories, hiden directories and meta about them'
+
 **Flags:**
+
 **behaviour:**
 + -a,
     + show hiden files/directories.
