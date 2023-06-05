@@ -6,7 +6,7 @@ Outputs the directories, subdirectories, and files as a tree.
 
 ## use
 
-**Usage:** tree \[-\[amd\]|-\[xy\] \[0-9\]+\] \[dir\]
+**Usage:** tree \[-\[amd\]|-\[xy\] \[0-9\]+\] \[-p dir\] \[-rsc regex\]
 + e.g: tree -a 'show tree, with hiden folders'
 + e.g: tree -d -x 3 -m 'show tree, with only directories, MAX_DEPTH=3, show some metadata of directories'
 + e.g: tree -mad 'show tree, only directories, hiden directories and meta about them'
@@ -15,11 +15,22 @@ Outputs the directories, subdirectories, and files as a tree.
 
 **behaviour:**
 + -a,
-    + show hiden files/directories.
+    + show hiden files/directories
 + -d,
-    + hide files.
+    + hide files
 + -m --meta,
-    + show more info about unopened folders.
+    + show more info about unopened folders
++ -p "...", --path "...",
+    + set path"
++ -r "...", --regex "...",    
+    + set regex for file matching. Regex tipe: 'sed'
++ -s "...", --startswith"...",
+    + set estarting chars. No regex, just basic character comparation
++ -c "...", --contains"...",
+    + check if fileName contains chars. No regex, just basic character comparation
++ -e "...", --endswith"...",\n      
+    + set ending chars. No regex, just basic character comparation
+
 **distance:**
 + -x #, --depth #
     + goes # directories depth. default = 8.
