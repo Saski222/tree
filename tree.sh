@@ -6,10 +6,10 @@ T_BRIGHT="\e[2m"
 T_ITALLIC="\e[3m"
 T_UNDERLINED="\e[4m"
 
-B_CLOSED_FOLDER=""    # f07b
-B_OPEN_FOLDER=""     # f07c 
-H_CLOSED_FOLDER=""   # f114
-H_OPEN_FOLDER=""    # f115
+B_CLOSED_FOLDER=""     # f07b
+B_OPEN_FOLDER=""       # f07c 
+H_CLOSED_FOLDER=""     # f114
+H_OPEN_FOLDER=""       # f115
 
 C_LINE="│"  # decoration shit
 
@@ -20,7 +20,13 @@ MY_PWD="" # 'root' folder
 
 H_FLAG="" # show hiden files (ls -A (-A = almost-all)) 
 D_FLAG="" # show directories only
-M_FLAG="" # show metadata 
+M_FLAG="" # show metadata
+
+# find . -maxdepth 1 -regextype sed -regex "\(^\./PRE*\|.*IN.*\|.*END$\)"
+REGEX=""  # regex used for ALL names (dirs or files)
+PREGEX=""   # pre-regex     (starts)
+INGEX=""    # in-regex      (contains)
+POSTGEX=""  # post-regex    (ends)
 
 ##############################################################################
 ##############################################################################
@@ -41,10 +47,14 @@ function icon()
     *.h)             echo  '' ;; # eac4
     *.java)          echo  '' ;; # e256
     *.json)          echo  '' ;; # e60b
-    *.png | *.jpeg)  echo  "󰈟" ;; # f021f
+    *.html)          echo  '' ;; # e60e
+    *.lua)           echo  '' ;; # e620
+    *.png | *.jpeg)  echo  '󰈟' ;; # f021f
     *.pdf)           echo  '' ;; # eaeb
     *.mp3 | *.wav)   echo  '󰈣' ;; # f0223
     *.mp4)           echo  '󰈫' ;; # f022b
+    .gitignore)      echo  '' ;; # e702
+    Makefile)        echo  '' ;; # e673
     .*)              echo  '' ;; # ea7b
     *)               echo  '󰈔' ;; # f0214
     esac
@@ -83,8 +93,8 @@ function count_elements()
     cd "${1}"
 
     [[ -z $H_FLAG ]] && \
-        echo $(find -P -maxdepth 1 | grep -E "^\./[^\.].*" | wc -l) || \
-        echo $(find -P -maxdepth 1 | grep -E -v "^\.$" | wc -l) 
+        echo $(find . -maxdepth 1 | grep -E "^\./[^\.].*" | wc -l) || \
+        echo $(find . -maxdepth 1 | grep -E -v "^\.$" | wc -l) 
     
     cd ..
 }
@@ -98,14 +108,14 @@ function mine_info()
 
     # count number of files
     declare -i N_FILES=$([[ -z $H_FLAG ]] && \
-        find -P -maxdepth 1 -type f | grep -E -v "^\./\." | wc -l || \
-        find -P -maxdepth 1 -type f | wc -l
+        find "." -maxdepth 1 -type f -regextype sed -regex "$REGEX" | grep -E -v "^\./\." | wc -l || \
+        find "." -maxdepth 1 -type f -regextype sed -regex "$REGEX" | wc -l
     )
 
     # count number of dirs
     declare -i N_DIRS=$([[ -z $H_FLAG ]] && \
-        find -P -maxdepth 1 -type d | grep -E "^\./\.?" | wc -l || \
-        find -P -maxdepth 1 -type d | grep -E "^\./[^\.]" | wc -l
+        find . -maxdepth 1 -type d | grep -E "^\./\.?" | wc -l || \
+        find . -maxdepth 1 -type d | grep -E "^\./[^\.]" | wc -l
     )
     
     # if none return
@@ -117,14 +127,14 @@ function mine_info()
 
     ## look for the file extentions
     EXTENTIONS=$([[ -z $H_FLAG ]] && \
-                    find -P -maxdepth 1 -type f | \
+                    find "." -maxdepth 1 -type f -regextype sed -regex "$REGEX" | \
                         sed 's|^\./||g;/^\./d' | \
                         get_icon | \
                         LC_ALL=C sort | \
                         uniq | \
                         tr '\n' ',' | \
                         sed 's|,$||;' || \
-                    find -P -maxdepth 1 -type f | \
+                    find "." -maxdepth 1 -type f -regextype sed -regex "$REGEX" | \
                         sed 's|^\./||g' | \
                         get_icon | \
                         LC_ALL=C sort | \
@@ -155,11 +165,11 @@ function recursive()
 
     # DIRS
     for DIR in $([[ -z $H_FLAG ]] && \
-        find -P -maxdepth 1 -type d | \
+        find . -maxdepth 1 -type d | \
             grep -E "\./[^\.].*" | \
             sort | \
             sed 's| |/|g'|| \
-        find -P -maxdepth 1 -type d | \
+        find . -maxdepth 1 -type d | \
             grep -E -v "^\.$" | \
             sort | \
             sed 's| |/|g'
@@ -201,20 +211,20 @@ function recursive()
     [[ -n $D_FLAG ]] && cd .. && return 1
 
     [[ 0 -eq $([[ -z $H_FLAG ]] && \
-        find -P -maxdepth 1 -type f | grep -E -v "^\./\." | wc -l || \
-        find -P -maxdepth 1 -type f | wc -l
+        find "." -maxdepth 1 -type f -regextype sed -regex "$REGEX" | grep -E -v "^\./\." | wc -l || \
+        find "." -maxdepth 1 -type f -regextype sed -regex "$REGEX" | wc -l
     ) ]] && cd .. && return 1
 
     # print files
     printf  "$(
         [[ -z $H_FLAG ]] && \
-          find -P -maxdepth 1 -type f | \
+          find "." -maxdepth 1 -type f -regextype sed -regex "$REGEX" | \
             sed 's|^./||g;/^\./d' | \
             sort | \
             sed 's| |/|g' | \
             insert_icon | \
             sed "s|^|$(tabs $2)|;s|/| |g" || \
-          find -P -maxdepth 1 -type f | \
+          find "." -maxdepth 1 -type f -regextype sed -regex "$REGEX" | \
             sed 's|^./||g' | \
             sort | \
             sed "s|^\.|\\$T_BRIGHT\.|;s| |/|g" | \
@@ -234,9 +244,8 @@ function recursive()
 ##############################################################################
 
 function help ()
-{
-    # -[amd]|-[xy] \d+ ∞
-    echo -e "Usage: tree [-[amd]|-[xy] [0-9]+] [dir]"
+{    
+    echo -e "Usage: tree [-[amd]|-[xy] [0-9]+] [:path:] [:regex:]"
     echo -e "  e.g: tree -a 'show tree, with hiden folders'"
     echo -e "  e.g: tree -d -x 3 -m 'show tree, with only directories, MAX_DEPTH=3, show some metadata of directories'"
     echo -e "  e.g: tree -mad 'show tree, only directories, hiden directories and meta about them'"
@@ -245,6 +254,13 @@ function help ()
     echo -e "    -a,\n      show hiden files/directories."
     echo -e "    -d,\n      hide files."
     echo -e "    -m --meta,\n      show more info about unopened folders."
+    echo -e "    -p "...", --path "...",\n      set path."
+    echo -e "    -r "...", --regex "...",\n      set regex for file matching. Regex tipe: 'sed'."
+    echo -e "    -s "...", --startswith"...",\n      set estarting chars. No regex, just basic character comparation"
+    echo -e "    -c "...", --contains"...",\n      check if fileName contains chars. No regex, just basic character comparation"
+    echo -e "    -e "...", --endswith"...",\n      set ending chars. No regex, just basic character comparation"
+
+    
     echo -e "  distance:"
     echo -e "    -x #, --depth #\n      goes # directories depth. default = ${MAX_DEPTH}."
     echo -e "    -y #, --elements #\n      shows file contents if it has less than # number of elements. default = ${MAX_ELEMENTS}."
@@ -264,6 +280,20 @@ function concatenated_flags ()
     done 
 }
 
+function clean_gex() 
+{
+    echo "$@" | sed 's|\\|\\\\|g;s|\ |\\ |g;s|\.|\\.|g;s|\*|\\*|g;s|\^|\\^|g;s|\$|\\$|g'
+}
+
+function group_gexs()
+{    
+    [[ -z $PREGEX && -z $INGEX && -z $POSTGEX ]] && REGEX=".*";
+    [[ -n $PREGEX ]] && PREGEX="^\./$(clean_gex $PREGEX).*";
+    [[ -n $INGEX ]] && INGEX=".*$(clean_gex $INGEX).*";
+    [[ -n $POSTGEX ]] && POSTGEX=".*$(clean_gex $POSTGEX)$";
+    REGEX="\($REGEX\|$PREGEX\|$INGEX\|$POSTGEX\)"
+}
+
 while test $# -gt 0; do
     ARG=$1
     shift
@@ -274,8 +304,13 @@ while test $# -gt 0; do
         -m | --meta) M_FLAG="1";;
         -x | --depth) MAX_DEPTH=$1; shift;;
         -y | --elements) MAX_ELEMENTS=$1; shift;; 
+        -p | --path) MY_PWD="$1"; shift;;
+        -r | --regex) REGEX=$1; shift;;
+        -s | --startswith) PREGEX=$1; shift;;
+        -c | --contains) INGEX=$1; shift;;
+        -e | --endswith) POSTGEX=$1; shift;;
         -*) concatenated_flags $ARG;; # echo "tree: error: unkown flag '$ARG', do 'tree -h' for help" && exit 0;;
-        *) MY_PWD="$ARG"
+        *) [[ -z $MY_PWD ]] && MY_PWD="$ARG" || [[ -z $REGEX ]] && REGEX=$ARG;;
     esac
 done  
 
@@ -293,17 +328,22 @@ else     # User actual dir
     MY_PWD="$(pwd)"
 fi
 
-#  echo $MY_PWD
-#  echo $MAX_ELEMENTS
-#  echo $MAX_DEPTH
+# echo "pwd: $MY_PWD"
+# echo "reg: $REGEX"
+# echo "x:   $MAX_DEPTH"
+# echo "y:   $MAX_ELEMENTS"
 
-#   echo "d:'$D_FLAG'"
-#   echo "h:'$H_FLAG'"
-#   echo "m:'$M_FLAG'"
+# echo "d: '$D_FLAG'"
+# echo "h: '$H_FLAG'"
+# echo "m: '$M_FLAG'"
 
+# find "." -type f -regextype sed -regex "${REGEX}"
+
+group_gexs
+
+echo $REGEX
 
 printf "$B_OPEN_FOLDER "
 echo $MY_PWD | awk -F '/' '{print $NF}'
 
 recursive "$MY_PWD" 1  
-
