@@ -108,8 +108,8 @@ function mine_info()
 
     # count number of files
     declare -i N_FILES=$([[ -z $H_FLAG ]] && \
-        find "." -maxdepth 1 -type f -regextype sed -regex "$REGEX" | grep -E -v "^\./\." | wc -l || \
-        find "." -maxdepth 1 -type f -regextype sed -regex "$REGEX" | wc -l
+        find . -maxdepth 1 -type f | grep -E -v "^\./\." | wc -l || \
+        find . -maxdepth 1 -type f | wc -l
     )
 
     # count number of dirs
@@ -127,14 +127,14 @@ function mine_info()
 
     ## look for the file extentions
     EXTENTIONS=$([[ -z $H_FLAG ]] && \
-                    find "." -maxdepth 1 -type f -regextype sed -regex "$REGEX" | \
+                    find . -maxdepth 1 -type f | \
                         sed 's|^\./||g;/^\./d' | \
                         get_icon | \
                         LC_ALL=C sort | \
                         uniq | \
                         tr '\n' ',' | \
                         sed 's|,$||;' || \
-                    find "." -maxdepth 1 -type f -regextype sed -regex "$REGEX" | \
+                    find . -maxdepth 1 -type f | \
                         sed 's|^\./||g' | \
                         get_icon | \
                         LC_ALL=C sort | \
