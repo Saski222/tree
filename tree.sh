@@ -14,7 +14,7 @@ H_OPEN_FOLDER=""       # f115
 C_LINE="│"  # decoration shit
 
 declare -i MAX_DEPTH=8      # tree max depth
-declare -i MAX_ELEMENTS=16  # "branch max leaves"
+declare -i MAX_ELEMENTS=32  # "branch max leaves"
 
 MY_PWD="" # 'root' folder
 
@@ -24,9 +24,9 @@ M_FLAG="" # show metadata
 
 # find . -maxdepth 1 -regextype sed -regex "\(^\./PRE*\|.*IN.*\|.*END$\)"
 REGEX=""  # regex used for ALL names (dirs or files)
-PREGEX=""   # pre-regex     (starts)
-INGEX=""    # in-regex      (contains)
-POSTGEX=""  # post-regex    (ends)
+#PREGEX=""   # pre-regex     (starts)
+#INGEX=""    # in-regex      (contains)
+#POSTGEX=""  # post-regex    (ends)
 
 ##############################################################################
 ##############################################################################
@@ -249,13 +249,16 @@ function help ()
     echo -e "  e.g: tree -a 'show tree, with hiden folders'"
     echo -e "  e.g: tree -d -x 3 -m 'show tree, with only directories, MAX_DEPTH=3, show some metadata of directories'"
     echo -e "  e.g: tree -mad 'show tree, only directories, hiden directories and meta about them'"
+    echo -e "  e.g: tree -c \"app\" -e \".txt\" -e \".c\" 'show tree, with files that (c)ontain \"app\" or (e)nd with \".txt\" or \".c\"'"
     echo -e "Flags:"
     echo -e "  behaviour:"
-    echo -e "    -a,\n      show hiden files/directories."
-    echo -e "    -d,\n      hide files."
-    echo -e "    -m --meta,\n      show more info about unopened folders."
+    echo -e "    -a,\n      show hiden files/directories"
+    echo -e "    -d,\n      hide files"
+    echo -e "    -m --meta,\n      show more info about unopened folders"
     echo -e "    -p "...", --path "...",\n      set path."
-    echo -e "    -r "...", --regex "...",\n      set regex for file matching. Regex tipe: 'sed'."
+
+    echo -e "  regex:"
+    echo -e "    -r "...", --regex "...",\n      set regex for file matching. Regex tipe: 'sed'"
     echo -e "    -s "...", --startswith"...",\n      set estarting chars. No regex, just basic character comparation"
     echo -e "    -c "...", --contains"...",\n      check if fileName contains chars. No regex, just basic character comparation"
     echo -e "    -e "...", --endswith"...",\n      set ending chars. No regex, just basic character comparation"
@@ -285,15 +288,6 @@ function clean_gex()
     echo "$@" | sed 's|\\|\\\\|g;s|\ |\\ |g;s|\.|\\.|g;s|\*|\\*|g;s|\^|\\^|g;s|\$|\\$|g'
 }
 
-function group_gexs()
-{    
-    [[ -z $PREGEX && -z $INGEX && -z $POSTGEX ]] && REGEX=".*";
-    [[ -n $PREGEX ]] && PREGEX="^\./$(clean_gex $PREGEX).*";
-    [[ -n $INGEX ]] && INGEX=".*$(clean_gex $INGEX).*";
-    [[ -n $POSTGEX ]] && POSTGEX=".*$(clean_gex $POSTGEX)$";
-    REGEX="\($REGEX\|$PREGEX\|$INGEX\|$POSTGEX\)"
-}
-
 while test $# -gt 0; do
     ARG=$1
     shift
@@ -305,10 +299,10 @@ while test $# -gt 0; do
         -x | --depth) MAX_DEPTH=$1; shift;;
         -y | --elements) MAX_ELEMENTS=$1; shift;; 
         -p | --path) MY_PWD="$1"; shift;;
-        -r | --regex) REGEX=$1; shift;;
-        -s | --startswith) PREGEX=$1; shift;;
-        -c | --contains) INGEX=$1; shift;;
-        -e | --endswith) POSTGEX=$1; shift;;
+        -r | --regex) [[ -z $REGEX ]] && REGEX="\($1" || REGEX="$REGEX\|$1"; shift;;
+        -s | --startswith) [[ -z $REGEX ]] && REGEX="\($1" || REGEX="$REGEX\|^\./$(clean_gex $PREGEX).*"; shift;;
+        -c | --contains) [[ -z $REGEX ]] && REGEX="\($1" || REGEX="$REGEX\|.*$(clean_gex $1).*"; shift;;
+        -e | --endswith) [[ -z $REGEX ]] && REGEX="\($1" || REGEX="$REGEX\|.*$(clean_gex $1)$"; shift;;
         -*) concatenated_flags $ARG;; # echo "tree: error: unkown flag '$ARG', do 'tree -h' for help" && exit 0;;
         *) [[ -z $MY_PWD ]] && MY_PWD="$ARG" || [[ -z $REGEX ]] && REGEX=$ARG;;
     esac
@@ -328,6 +322,8 @@ else     # User actual dir
     MY_PWD="$(pwd)"
 fi
 
+[[ -z $REGEX ]] && REGEX=".*" || REGEX="$REGEX\)";
+
 # echo "pwd: $MY_PWD"
 # echo "reg: $REGEX"
 # echo "x:   $MAX_DEPTH"
@@ -339,11 +335,8 @@ fi
 
 # find "." -type f -regextype sed -regex "${REGEX}"
 
-group_gexs
-
-echo $REGEX
-
 printf "$B_OPEN_FOLDER "
 echo $MY_PWD | awk -F '/' '{print $NF}'
 
 recursive "$MY_PWD" 1  
+

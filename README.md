@@ -10,6 +10,7 @@ Outputs the directories, subdirectories, and files as a tree.
 + e.g: tree -a 'show tree, with hiden folders'
 + e.g: tree -d -x 3 -m 'show tree, with only directories, MAX_DEPTH=3, show some metadata of directories'
 + e.g: tree -mad 'show tree, only directories, hiden directories and meta about them'
++ e.g: tree -c \"app\" -e \".txt\" -e \".c\" 'show tree, with files that (c)ontain \"app\" or (e)nd with \".txt\" or \".c\"'
 
 **Flags:**
 
@@ -22,6 +23,8 @@ Outputs the directories, subdirectories, and files as a tree.
     + show more info about unopened folders
 + -p "...", --path "...",
     + set path"
+
+**regex:**
 + -r "...", --regex "...",    
     + set regex for file matching. Regex tipe: 'sed'
 + -s "...", --startswith"...",
